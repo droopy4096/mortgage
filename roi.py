@@ -31,7 +31,7 @@ class MortgageGenerator:
                                     self._months,
                                     house_price,
                                     downpayment,
-                                    amount,**self.kwargs)
+                                    amount,**self._kwargs)
 
 class ROI:
     """Mortgage Return on investment calculator. Includes
@@ -45,7 +45,8 @@ class ROI:
                  investments=0,
                  property_tax=0,
                  property_insurance=0,
-                 tax_rate=0.4
+                 tax_rate=0.4,
+                 realtor_cut=0.07
                 ):
         self._mortgage=mortgage
         if target_sell_price is None:
@@ -61,6 +62,7 @@ class ROI:
         self._property_insurance=property_insurance
         self._property_tax=property_tax
         self._tax_rate=tax_rate
+        self._realtor_cut=realtor_cut
 
     @property
     def mortgage(self):
@@ -81,6 +83,10 @@ class ROI:
     @property
     def investments(self):
         return self._investments
+
+    @property
+    def realtor_cut(self):
+        return self._realtor_cut
 
     @property
     def property_tax(self):
@@ -128,11 +134,11 @@ class ROI:
           write_off_gain+=monthly_writeoff_gain
           
           # net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth+write_off_gain
+          net_worth_gain=self.target_sell_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
 
           appreciated_price=float(self.mortgage.house_price)*(self.appreciation**(year))+month_appreciation_delta
           # appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth+write_off_gain
+          appreciated_net_worth_gain=appreciated_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
           
           monthly_expence_avg=(net_worth_gain)/(index+1)
 
