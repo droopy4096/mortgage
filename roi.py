@@ -19,6 +19,20 @@ class RapidPayMortgage(Mortgage):
   def monthly_prepayment(self,month):
       return self.prepayment_table[month-1]
 
+class MortgageGenerator:
+    def __init__(self, interest, months, mortgage_class, **kwargs):
+        self._interest=interest
+        self._months=months
+        self._kwargs=kwargs
+        self._mortgage_class=mortgage_class
+
+    def get_mortgage(self, house_price=None, downpayment=None, amount=None):
+        return self._mortgage_class(self._interest,
+                                    self._months,
+                                    house_price,
+                                    downpayment,
+                                    amount,**self.kwargs)
+
 class ROI:
     """Mortgage Return on investment calculator. Includes
     rough calculations of tax returns combined with all 
@@ -84,7 +98,7 @@ class ROI:
         house_tax_monthly=float(self.mortgage.house_price)*self.property_tax/12
         insurance_monthly=self.property_insurance/12
         write_off_gain=0
-        principal_remaining=self.mortgage.amount
+        principal_remaining=float(self.mortgage.amount)
 
         principal_paid=float(0)
         interest_paid=float(0)
@@ -101,9 +115,9 @@ class ROI:
           month=(index%12)+1
           year=(index/12)
           mortgage_paid+=float(principal)+float(interest)
-          principal_remaining=float(principal_remaining)-float(principal)
-          principal_paid=float(principal_paid)+float(principal)
-          interest_paid=float(interest_paid)+float(interest)
+          principal_remaining-=float(principal)
+          principal_paid+=float(principal)
+          interest_paid+=float(interest)
 
           month_appreciation_delta=month*float(self.mortgage.house_price)*(self.appreciation**(year-1))*(self.appreciation - 1)/12
 
@@ -114,11 +128,11 @@ class ROI:
           write_off_gain+=monthly_writeoff_gain
           
           # net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth
+          net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth+write_off_gain
 
-          appreciated_price=float(self.mortgage.house_price)*self.appreciation**(year-1)+month_appreciation_delta
+          appreciated_price=float(self.mortgage.house_price)*(self.appreciation**(year))+month_appreciation_delta
           # appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth
+          appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth+write_off_gain
           
           monthly_expence_avg=(net_worth_gain)/(index+1)
 
@@ -130,6 +144,7 @@ class ROI:
           row=(year, month, 
                   principal,
                   interest,
+                  appreciated_price,
                   house_tax_monthly,
                   insurance_monthly,
                   monthly_writeoff_gain,
