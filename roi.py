@@ -100,7 +100,7 @@ class ROI:
     def tax_rate(self):
         return self._tax_rate
 
-    def monthly_table(self):
+    def monthly_hash(self, start_month=0, already_paid=0):
         house_tax_monthly=float(self.mortgage.house_price)*self.property_tax/12
         insurance_monthly=self.property_insurance/12
         write_off_gain=0
@@ -116,38 +116,59 @@ class ROI:
         year=0
         month=0
 
+        total_paid = already_paid
+
         for index, payment in enumerate(self.mortgage.monthly_payment_schedule()):
           principal, interest = payment
-          month=(index%12)+1
-          year=(index/12)
-          mortgage_paid+=float(principal)+float(interest)
-          principal_remaining-=float(principal)
-          principal_paid+=float(principal)
-          interest_paid+=float(interest)
+          mortgage_month = index + start_month
+          month = (mortgage_month%12)+1
+          year = (mortgage_month/12)
+          mortgage_paid += float(principal)+float(interest)
+          principal_remaining -= float(principal)
+          principal_paid += float(principal)
+          interest_paid += float(interest)
 
-          month_appreciation_delta=month*float(self.mortgage.house_price)*(self.appreciation**(year-1))*(self.appreciation - 1)/12
+          month_appreciation_delta = month*float(self.mortgage.house_price)*(self.appreciation**(year-1))*(self.appreciation - 1)/12
 
-          monthly_writeoff_gain=(float(interest)+float(house_tax_monthly))*self.tax_rate
+          monthly_writeoff_gain = (float(interest)+float(house_tax_monthly))*self.tax_rate
 
           # house_tax_paid+=house_tax_monthly
-          insurance_paid+=insurance_monthly
-          write_off_gain+=monthly_writeoff_gain
+          insurance_paid += insurance_monthly
+          write_off_gain += monthly_writeoff_gain
           
           # net_worth_gain=self.target_sell_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          net_worth_gain=self.target_sell_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
+          net_worth_gain = self.target_sell_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
 
-          appreciated_price=float(self.mortgage.house_price)*(self.appreciation**(year))+month_appreciation_delta
+          appreciated_price = float(self.mortgage.house_price)*(self.appreciation**(year))+month_appreciation_delta
           # appreciated_net_worth_gain=appreciated_price*0.93-principal_remaining-target_net_worth-house_tax_paid-insurance_paid+write_off_gain
-          appreciated_net_worth_gain=appreciated_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
+          appreciated_net_worth_gain = appreciated_price*(1-self.realtor_cut)-principal_remaining-target_net_worth+write_off_gain
           
-          monthly_expence_avg=(net_worth_gain)/(index+1)
 
+          total_paid += float(house_tax_monthly) +\
+                        float(principal) +\
+                        float(interest) +\
+                        float(insurance_monthly) -\
+                        float(monthly_writeoff_gain)
+          monthly_cost = ( total_paid + self._investments - net_worth_gain ) / (mortgage_month+1)
+          monthly_cost_appreciated = ( total_paid  + self._investments - appreciated_net_worth_gain ) / (mortgage_month+1)
           # all_paid_monthly (mortgage+tax+insurance)
           # principal_remaining
           # sale_gain (surplus_money-insurance_paid-house_tax_paid)
           # net_worth_gain (surplus_money)
           # appreciated_net_worth_gain (surplus_money+potential_price_gain)
-          row=(year, month, 
+          row=dict(zip(('year', 'month', 
+                  'principal',
+                  'interest',
+                  'appreciated_price',
+                  'tax',
+                  'insurance',
+                  'writeoff',
+                  'net_worth_gain',
+                  'appreciated_net_worth_gain',
+                  'rent_equivalent',
+                  'appreciated_rent_equivalent'
+               ),
+              (year, month, 
                   principal,
                   interest,
                   appreciated_price,
@@ -156,8 +177,8 @@ class ROI:
                   monthly_writeoff_gain,
                   net_worth_gain,
                   appreciated_net_worth_gain,
-               )
+                  monthly_cost,
+                  monthly_cost_appreciated
+               )))
 
           yield row
-          
-
