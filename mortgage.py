@@ -8,11 +8,14 @@ import decimal
 MONTHS_IN_YEAR = 12
 DOLLAR_QUANTIZE = decimal.Decimal('.01')
 
+
 class MissingValue(Exception):
-    def __init__(self,val):
-        self._val=val
+    def __init__(self, val):
+        self._val = val
+
     def __str__(self):
         return str(self._val)
+
 
 def dollar(f, round=decimal.ROUND_CEILING):
     """
@@ -22,22 +25,24 @@ def dollar(f, round=decimal.ROUND_CEILING):
         f = decimal.Decimal(str(f))
     return f.quantize(DOLLAR_QUANTIZE, rounding=round)
 
-class Mortgage:
+
+class Mortgage(object):
     # def __init__(self, interest, months, amount):
-    def __init__(self, interest, months, 
-                  house_price=None, downpayment=None,
-                  amount=None,
+    def __init__(self, interest, months,
+                 house_price=None, downpayment=None,
+                 amount=None,
                  ):
         self._interest = float(interest)
         self._months = int(months)
         if house_price and downpayment:
             self._amount = dollar(house_price)-dollar(downpayment)
-            self._house_price=dollar(house_price)
+            self._house_price = dollar(house_price)
         elif amount and house_price:
             self._amount = dollar(amount)
-            self._house_price=dollar(house_price)
+            self._house_price = dollar(house_price)
         else:
-            raise MissingValue("need to specify house price and either load amount or downpayment")
+            raise MissingValue("need to specify house price "
+                               "and either load amount or downpayment")
         # self._property_tax=property_tax
         # self._investments=investments
         # self._insurance_annual=annual_insurance
@@ -86,7 +91,7 @@ class Mortgage:
     def total_payout(self):
         return self.monthly_payment * self.loan_months
 
-    def monthly_prepayment(self,month):
+    def monthly_prepayment(self, month):
         return 0
 
     def monthly_payment_schedule(self):
@@ -94,16 +99,17 @@ class Mortgage:
         balance = dollar(self.amount)
         rate = decimal.Decimal(str(self.rate)).quantize(decimal.Decimal('.000001'))
         # while True:
-        for month in range(1,self._months):
+        for month in range(1, self._months):
             interest_unrounded = balance * rate * decimal.Decimal(1)/MONTHS_IN_YEAR
             interest = dollar(interest_unrounded, round=decimal.ROUND_HALF_UP)
-            pmt=monthly+self.monthly_prepayment(month)
+            pmt = monthly+self.monthly_prepayment(month)
             if pmt >= balance + interest:
                 yield balance, interest
                 break
             principal = pmt - interest
             yield principal, interest
             balance -= principal
+
 
 def print_summary(m):
     print('{0:>25s}:  {1:>12.6f}'.format('Rate', m.rate))
@@ -115,6 +121,7 @@ def print_summary(m):
     print('{0:>25s}:  {1:>12.2f}'.format('Monthly Payment', m.monthly_payment))
     print('{0:>25s}:  {1:>12.2f}'.format('Annual Payment', m.annual_payment))
     print('{0:>25s}:  {1:>12.2f}'.format('Mortgage Payout', m.total_payout))
+
 
 def main():
     parser = argparse.ArgumentParser(description='Mortgage Amortization Tools')
@@ -130,6 +137,7 @@ def main():
         m = Mortgage(float(args.interest) / 100, float(args.years) * MONTHS_IN_YEAR, args.amount)
 
     print_summary(m)
+
 
 if __name__ == '__main__':
     main()
